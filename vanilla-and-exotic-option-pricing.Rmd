@@ -1,0 +1,1004 @@
+---
+title: |
+  | Asian and European Option Specifics--
+  | Pricing, Estimation, and Comparison Using R
+author: | 
+  | By [Christian Satzky, FRM](https://www.linkedin.com/in/christian-satzky/)
+  | Email: [c.satzky@gmail.com](mailto:c.satzky@gmail.com)
+date: "Last update: `r ifelse(substr(format(Sys.time(), '%d'),1,1) == 0, substring(format(Sys.time(), '%d %B %Y'), 2), format(Sys.time(), '%d %B %Y'))`"
+output:
+  pdf_document:
+    keep_tex: yes
+    number_sections: true
+    fig_caption: yes
+geometry: margin=1in
+fontfamily: mathpazo
+indent: false
+fontfamilyoptions: sc, osf
+fontsize: 12pt
+linkcolor: blue
+urlcolor: blue
+bibliography: references_option_pricing.bib
+nocite: '@*'
+
+header-includes:
+- \renewcommand{\baselinestretch}{1.25} 
+- \newcommand{\bquote}{\begin{quote}}
+- \newcommand{\equte}{\end{quote}}
+- \newcommand{\cc}{\centering}
+- \newcommand{\bdquote}{\begin{displayquote}}
+- \newcommand{\edquote}{\end{displayquote}}
+- \newcommand{\txtq}{\end{textquote}}
+- \usepackage{csquotes}
+- \usepackage{textcomp}
+- \usepackage{fontawesome5}
+- \usepackage{floatrow}
+- \floatsetup[figure]{capposition=top}
+- \floatsetup[table]{capposition=top}
+- \usepackage{setspace}
+- \newcommand{\inlinecode}{\texttt}
+- \newcommand{\typelatex}{\LaTeX}
+- \newcommand{\vspaceone}{\vspace{1 mm}}
+---
+
+\newpage
+\hypersetup{linkcolor=black}
+\tableofcontents
+\newpage
+\hypersetup{linkcolor=blue}
+
+```{r load-libs, include = FALSE}
+# set-up code chunks' visibility
+knitr::opts_chunk$set(echo = FALSE,
+                      tidy=TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      cache.lazy = FALSE,
+                      fig.pos = 'H')
+
+# load/install required libraries
+if(!require(kableExtra)) install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+if(!require(gridExtra)) install.packages("gridExtra", repos = "http://cran.us.r-project.org")
+if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.org")
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(grid)) install.packages("grid", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
+if(!require(fasttime)) install.packages("fasttime", repos = "http://cran.us.r-project.org")
+if(!require(stringr)) install.packages("stringr", repos = "http://cran.us.r-project.org")
+if(!require(RcppRoll)) install.packages("RcppRoll", repos = "http://cran.us.r-project.org")
+if(!require(caTools)) install.packages("caTools", repos = "http://cran.us.r-project.org")
+if(!require(zoo)) install.packages("zoo", repos = "http://cran.us.r-project.org")
+if(!require(xts)) install.packages("xts", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
+if(!require(extrafront)) install.packages("extrafront", repos = "http://cran.us.r-project.org")
+if(!require(matrixStats)) install.packages("matrixStats", repos = "http://cran.us.r-project.org")
+if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
+if(!require(broom)) install.packages("broom", repos = "http://cran.us.r-project.org")
+if(!require(stargazer)) install.packages("stargazer", repos = "http://cran.us.r-project.org")
+library(scales)
+library(extrafont)
+library(kableExtra)
+library(gridExtra)
+library(knitr)
+library(tidyverse)
+library(grid)
+library(data.table)
+library(lubridate)
+library(ggthemes)
+library(fasttime)
+library(stringr)
+library(RcppRoll)
+library(caTools)
+library(zoo)
+library(xts)
+library(matrixStats)
+library(tidyr)
+library(broom)
+library(stargazer)
+
+gbm_loop <- function(nsim, t, mu, sigma, S0, dt) {
+  gbm <- matrix(ncol = nsim, nrow = t)
+  for (simu in 1:nsim) {
+    gbm[1, simu] <- S0
+    for (day in 2:t) {
+      epsilon <- rnorm(1)
+      gbm[day, simu] <- gbm[(day-1), simu] * exp((mu - sigma * sigma / 2) * dt + sigma * epsilon * sqrt(dt))
+    }
+  }
+  return(gbm)
+}
+```
+
+# Abstract {-}
+
+In this article, I present methods to efficiently estimate the price and the probability of exercise for vanilla and exotic options. In addition, I am using these results to compare the empirical delta between European and average rate Asian options.
+
+Results confirm that average rate exotic options generally reduce the variability of the option's price, probability of exercise, and the option's delta when compared to vanilla options. Hence, offering average rate options might be beneficial when delta hedging the option portfolio is of concern.
+
+This research is 100% reproducible. All `R` source code is publicly available on my personal [GitHub page](https://github.com/csatzky).^[URL: https://github.com/csatzky]
+
+_Keywords: Exotic Option Pricing, Monte Carlo Simulation, Delta Hedging._
+
+\newpage
+
+# Simulating Vanilla Options
+
+Obtaining an option's price using Monte-Carlo simulation is straightforward. However, simulating the delta of an option is more complex. In the following, I am first reviewing the underlying price process of the Black-Scholes model. Secondly, I present a simple, lightweight `R` function to simulate this price process. Thirdly, after carefully dissecting the Black-Scholes equation, I am presenting a simulation approach on how to estimate an option's delta.
+
+## Geometric Brownian Motion
+
+Under the Black-Scholes differential equation, the stock price $S$ follows a geometric Brownian motion (GBM). The stock price at time $t$ can be expressed as:
+
+\begin{align}
+S_t = S_0 \: \text{exp}\bigg(\bigg({\mu - \frac{\sigma^2}{2}\bigg)T + \sigma B_t} \bigg)
+\end{align}
+
+\begin{footnotesize}
+Where:
+```{r gbm-notation}
+notation_gbm <- data.frame(c("$S_t$", "$\\mu$", "$\\sigma$", "$B_t$"),
+                        c("Stock price at time t", "Annual rate of return of the risky asset $S$", "Standard deviation of $\\mu$", "Wiener process, $B_t \\sim N(0,t), \\forall t$"))
+
+kable(notation_gbm, escape = FALSE, booktabs=TRUE, col.names = NULL, align = c("l","l")) %>%
+  kable_styling(position = "left") %>% 
+  sub("\\\\toprule", "", .) %>%
+  sub("\\\\bottomrule", "", .)
+```
+\end{footnotesize}
+
+## Simulating A Geometric Brownian Motion
+
+Let's denote $\Delta t$ the fixed step size $\Delta t = t_i - t_{i-1} \: \forall i$, such that:
+
+\begin{align}
+S_{t_i} = S_{t_{i-1}} \: \text{exp}\bigg(\bigg({\mu - \frac{\sigma^2}{2}\bigg)\Delta t + \sigma \sqrt{\Delta t} Z} \bigg)
+\end{align}
+
+Where $Z \sim N(0,1)$.
+
+To simulate one GBM path efficiently, I am using vectorization and two lines of `R` code. The in-built `R` function `cumprod()` cumulatively multiplies the incremental factors in the GBM evolution.
+
+\vspace{2mm}
+
+\setstretch{1.0}
+\small
+
+```{r, gbm-simulation-function, echo = TRUE}
+gbm_path <- function(s0, mu, sigma, T, dt = 1/(T-1)) {
+  
+# draw from the standard-normal distribution  
+epsilons <- rnorm(T-1) 
+  
+# compute GBM path from t=0 to t=T
+cumprod(c(s0,exp((mu-sigma*sigma/2)*dt + sigma*epsilons*sqrt(dt))))
+}
+```
+
+\setstretch{1.25}
+\normalsize
+
+Below, I am using the `gbm_path()` function to simulate 10 GBM paths sharing the following characteristics:
+
+\setstretch{1.1}
+\small
+
+```{r gbm-specifics}
+gbm_specifics <- data.frame(c("$S_0$", "$T$", "$\\mu$", "$\\sigma$", "$\\Delta t$"),
+#                           rep("$=$",5),
+                           c("$= 100$", "$= 252$", "$= 0.07$", "$= 0.3$", "$= 1/251$"),
+#                           rep(":",5),
+                           c("Stock price in $t=0$ is equal to \\$100",
+                             "Simulate 252 trading days, i.e. 1 calendar year from $S_0$ to $S_T$",
+                             "Stock $S$ has an expected, continously compounded, annual return of 7\\%",
+                             "Stock $S$ has constant, annual volatility of 30\\%",
+                             "If $t=0$ to $t=T$ represents one year, then $\\Delta t = 1/(T-1)$"))
+
+kable(gbm_specifics, escape = FALSE, booktabs=TRUE, col.names = NULL, align = c("l","l","l","l")) %>%
+  kable_styling(position = "left") %>% 
+  sub("\\\\toprule", "", .) %>%
+  sub("\\\\bottomrule", "", .)
+```
+
+\normalsize
+\setstretch{1.25}
+\vspace{6mm}
+
+```{r, plot-gbm, cache = TRUE, out.width = "76%", fig.align = 'center', fig.cap="10 Simulated GBM Paths with Equal Characteristics"}
+# pick shared parameters
+s0 <- 100
+mu <- 0.07
+sigma <- 0.3
+T <- 252
+
+# for reproducibility
+set.seed(1)
+
+# simulate 10 GBMs
+n <- 10
+gbms <- replicate(n,
+    gbm_path(s0, mu, sigma, T))
+
+# wrangle data
+gbms <- as.data.table(gbms)[, trading_day := 1:nrow(gbms)]
+gbms <- melt(gbms, id.vars = "trading_day", variable.name = "sim")
+
+# plot GBMs
+gbms %>%
+  ggplot(aes(x=trading_day, y=value, color=sim)) +
+  scale_y_continuous(position = "right") +
+  theme(axis.text=element_text(size=12, family="sans"),
+      #plot.title=element_text(size=14, family="sans", hjust = 0.5), 
+      plot.title=element_blank(), 
+      #plot.subtitle = element_text(size=12, family="sans", hjust = 0.5),
+      plot.subtitle = element_blank(),
+      axis.title.y = element_text(margin = margin(t = 100, r = 100, b = 100, l = 100), size = 13),
+      axis.title.x = element_text(size = 12),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.3, colour = 'darkgrey', linetype = 'dotted'),
+      axis.line.y.right = element_line(colour = rgb(0.4,0.4,0.4)),
+      axis.line.x.bottom = element_line(colour = rgb(0.4,0.4,0.4)),
+      legend.position = 'none') +
+  ylab("Stock Price\n") +
+  xlab("\nTrading Day") +
+  labs(subtitle = bquote(S[0]~'='~.(s0)*',  '*mu~'='~.(mu)*',  '*sigma~'='~.(sigma)),
+       title = bquote("Simulation of "*.(n)*" GBM Paths")) +
+  geom_line() +
+  geom_point(aes(x = 1, y = s0), colour="black") +
+  annotate(geom = "text", x = -3, y = s0, label = expression(S[0]), hjust = "right", size = 6)
+```
+
+\newpage
+
+### Code Cross-Check
+
+When simulating a GBM path with $S_0 = 100$, $\mu = 0.07$, and $T-t_0$ resembling one calendar year, the expected stock price at expiry, $E[S_T]$ is equal to:
+
+$$E[S_T] = S_0\exp\big({\mu}\big) = 100\exp\big({0.07}\big) = 107.2508$$
+
+To test the correctness of the `gbm_path()` function, below I am simulating $n = 100,000$ GBM paths to estimate $S_T$.
+
+\singlespacing
+\small
+
+```{r, simulate-100k-paths, echo = TRUE, cache = TRUE}
+# for reproducibility
+set.seed(1)
+
+# simulate 100k GBMs with low sigma
+gbms <- replicate(100000,
+    gbm_path(s0 = 100, mu = 0.07, sigma = 0.0005, T = 252))
+
+# compute average stock price at expiry and 95% CIs
+ST <- mean(tail(gbms,1))
+sd <- sd(tail(gbms,1))
+ci_upper <- ST + (sd/sqrt(100000))*pnorm(0.975)
+ci_lower <- ST - (sd/sqrt(100000))*pnorm(0.975)
+```
+
+\setstretch{1.25}
+\normalsize
+\vspace{4mm}
+
+```{r, table}
+df <- data.frame(ST = ST, ci = paste0("[",round(ci_upper,5),", ",round(ci_lower,5),"]"))
+
+names(df) <- c("$\\widehat{S_T}$", "95\\% CI")
+
+kable(df, caption = "Simulation Results for Stock Price at Expiry", escape = FALSE, booktabs=TRUE, align = rep("c",2)) %>%
+  kable_styling(position = "center", latex_options = "hold_position") %>%
+  footnote(general_title = "",
+           general = c("$n = 0.1\\\\text{m}$,","$S_0 = \\\\$100$,",     
+                   "$\\\\mu=0.07$,","$\\\\sigma=0.0005$."),
+           footnote_as_chunk=TRUE,
+           escape = FALSE)
+```
+
+The simulation confirms that the `gbm_path()` function yields an unbiased estimate of $S_T$.
+
+\newpage
+
+## Option Pricing using Monte-Carlo Simulation
+
+Under the Black-Scholes model, the investor is invariant to risk. Hence, risky assets are discounted at the risk-free rate, $r$. Likewise, risky assets are expected to grow at the risk-free rate, $r$. Hence, when simulating GBM paths, $\mu$ has no relevance and is set to `mu = r` in the `gbm_path()` function. 
+
+Obtaining the price for a European call option is straightforward. First, let's simulate several GBM paths. Secondly, compute the pay-off at expiry. Thirdly, discount all pay-offs to time $t=0$. The average of all present values of the simulated pay-offs is equal in expectation to the option price obtained via the Black-Scholes formula:
+
+\begin{align}
+\text{V}^{\text{C}_{\text{E}}}_t = S_t F_N \big(d_1\big) - X \exp^{-r(T-t)} F_N \big(d_2\big) \label{bscall}
+\end{align}
+
+\setstretch{1.1}
+\small
+
+Where:
+
+$\begin{aligned}
+d_1 &= \frac{1}{\sigma\sqrt{T-t}}\bigg[\ln\bigg(\frac{S_t}{X}\bigg)+\bigg(r + \frac{\sigma^2}{2}\bigg)(T-t) \bigg] \notag\\
+\vspace{2mm}
+d_2 &= d_1 - \sigma\sqrt{T-t} \notag\\
+\vspace{2mm}
+F_N() &: \text{Cumulative distribution function of the standard normal distribution} \notag\\
+\sigma &: \text{Annualized volatility of the share price } S_t \notag\\
+T-t &: \text{Time to expiry in years} \notag\\
+S_t &: \text{Share price at time } t \notag\\
+X &: \text{Strike price of the option} \notag\\
+r &: \text{Annualized, continuously compunded risk-free rate} \notag
+\end{aligned}$
+
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+Note that at the option's inception, $t=0$, and for expiry in one year, $T=1$, the terms simplify to $T-t = 1$ and $S_t = S_0$.
+
+### Dissecting the Black-Scholes Equation's Terms
+
+In the following, I am developing a method to obtain estimates for a vanilla option's delta, i.e. the first derivative of the option price with respect to the share price. Delta is of crucial importance as it is used to hedge the option price against changes in the underlying asset.
+
+To develop an approach to simulate an option's delta, it is useful to first interpret the terms in Black-Scholes equation \eqref{bscall}. In line with Nielsen (1992)^[Lars Tyge Nielsen, \textit{"Understanding N(d1) and N(d2) : risk adjusted probabilities in the black-scholes model"}, INSEAD, 1992.], the terms resemble the following:
+
+\begin{align}
+\underbrace{\text{V}^{\text{C}}_t}_{\substack{\text{European Call}\\  \text{Price at time }t}} = \underbrace{S_t}_{\substack{\text{Present Value}\\  \text{of }\mathbb E[S_T]}}\underbrace{F_N \big(d_1\big)}_{\frac{\partial V^C_{t}}{\partial S_t}} - \underbrace{X \exp^{-r(T-t)}}_{\substack{\text{Present Value}\\  \text{of Strike Price}}} \underbrace{F_N \big(d_2\big)}_{\mathbb{P}(S_T>X)} \label{bscall2}
+\end{align}
+
+***Note:***
+
+1. As established in the previous section, due to risk-neutrality, $S_t =  \mathbb E[S_T] \exp^{-r(T-t)}$, and likewise, $\mathbb E[S_T] = S_t \exp^{r(T-t)}$. \vspace{1mm}
+2. It is a common misconception to interpret the option's delta as the probability of the option ending up in the money at expiry. When it comes to a European call option, $\text{Delta}^{\text{C}}=F_N(d_1)$ _overestimates_ the true probability, $\mathbb P(S_T>X) = F_N(d_1 - \sigma\sqrt{T-t})$. This is due to the missing volatility term, $\sigma\sqrt{T-t}$. Given delta, this probability can be calculated using the standard normal quantile function, $Q_N(p)$: $$\mathbb P(S_T>X) = F_N \bigg(Q_N\big(\text{Delta}^{\text{C}}\big) - \sigma\sqrt{T-t} \bigg)$$ In `R`, this can be computed as `pnorm(qnorm(d) -sigma*sqrt(T-t))`, where $d=\text{Delta}^{\text{C}}$, $\text{sigma}=\sigma$ (e.g. implied volatility), and $\text{T-t}$ is the time to maturity in years. \vspace{1mm}
+
+In the following section, I am using \eqref{bscall2} to simulate a European call option's delta.
+
+\newpage
+
+### Simulating a Vanilla Option's Delta
+
+It is straightforward for most options to determine the terms in equation \eqref{bscall2} using Monte-Carlo simulation. One possible exception, however, is the option's delta, which is given by $F_N(d_1)$ for a European call. More specifically, 
+
+1. $S_t$, $X$, $r$, and $T-t$ are all given.
+2. $\mathbb{P}(S_T>X)$ can be estimated by computing the proportion of several GBM paths exceeding the strike price, $X$ at expiry, $T$.
+3. $\text{V}^{\text{C}}_t$, the option price at time $t$, can be estimated by discounting and averaging the simulated pay-offs at expiry $T$.
+
+Hence, using \eqref{bscall2} and Monte-Carlo simulation, the option's delta for a European call option can be estimated by:
+
+\begin{align}
+\text{Delta}^{\text{C}} = \frac{\partial{V^C_t}}{{\partial S_t}} = \frac{1}{S_t} \bigg[ \text{V}^{\text{C}}_t + X \exp^{-r(T-t)} \mathbb{P}(S_T > X) \bigg] \label{deltaeq}
+\end{align}
+
+Note that $S_t$, $X$, $r$, $T$, and $t$ are all exogenous and the two variables obtainable by simulation are $\mathbb{P}(S_T > X)$ and $\text{V}^{\text{C}}_t$. Hence, equation \eqref{deltaeq} reduces to a scaled sum of two variables of the form $aX + bY$. Thus, its variance is equal to:
+
+\begin{align}
+\text{Var}\big[\hat{\text{Delta}}^\text{C}\big] = \frac{1}{S_t^2} \bigg[ \text{Var}\big[\hat{\text{V}}^{\text{C}}_t\big] + b^2\, \text{Var}\big[\hat{\mathbb P}(S_T > X)\big] + 2\, b\, \text{Cov}\big[\hat{\text{V}}^{\text{C}}_t,\, \hat{\mathbb P}(S_T > X)  \big] \bigg] \label{vardelta}
+\end{align}
+
+Where:
+
+$\begin{aligned}
+b &= X\exp^{-r(T-t)} \notag
+\end{aligned}$
+
+It follows the standard error for $\hat{\text{Delta}}^\text{C}$:
+
+\begin{align}
+\text{SE}\big[\hat{\text{Delta}}^\text{C}\big] = \frac{\sqrt{\text{Var}\big[\hat{\text{Delta}}^\text{C}\big]}}{\sqrt{n}} \label{sedelta}
+\end{align}
+
+
+### Application: Simulating the Price and Delta of a European Call
+
+In the following, I am comparing the price, the delta, and the probability of exercise of a European call option obtained by the Black-Scholes equation to the estimates obtained by the simulation method as described in [the previous section][Simulating a Vanilla Option's Delta].
+
+Consider a European call option with the following characteristics:
+
+\setstretch{1.1}
+\small
+
+```{r call-specifics}
+call_specifics <- data.frame(c("$S_0$", "$\\sigma$", "$X$", "$r$", "$T-t$"),
+                           c("$= \\$100$", "$= 0.2$", "$= \\$100$", "$= 0.02$", "$= 1$"),
+                           c("Stock price at $t=0$ is \\$100",
+                             "The underlying asset has 20\\% volatility",
+                             "The option's strike price is \\$100",
+                             "Risk-free rate is 2\\%",
+                             "1 year to expiry"))
+
+kable(call_specifics, escape = FALSE, booktabs=TRUE, col.names = NULL, align = c("l","l","l")) %>%
+  kable_styling(position = "left") %>% 
+  sub("\\\\toprule", "", .) %>%
+  sub("\\\\bottomrule", "", .)
+```
+
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+The table below compares the results obtained by Monte-Carlo simulation and the Black-Scholes equation.
+
+```{r, simulating-european-call-price-delta, cache = TRUE, results='hide'}
+# Define Black-Scholes equation for a European call
+bs_call <- function(s0=100, sigma=0.2, T=1, t=0, X=100, r=0.02) {
+  d1 <- (sigma*sqrt(T-t))^(-1) * (log(s0/X) + (r+(sigma^2)/2)*(T-t))
+  d2 <- d1 - sigma*sqrt(T-t)
+  
+  price_t <- round(s0*pnorm(d1) - X*exp(-r*(T-t))*pnorm(d2),3)
+  delta_t <- round(pnorm(d1),3)
+  p_exercise_t <- round(pnorm(d2),3)
+  
+  result <- list(price = price_t, delta = delta_t, p_exercise = p_exercise_t)
+  return(result)
+}
+
+# Compute results for European call option from Black-Scholes equation
+price_bs <- bs_call()$price
+delta_bs <- bs_call()$delta
+p_exercise_bs <- bs_call()$p_exercise
+
+
+## Estimate prices, delta, and probability of exercise using MC-simulation
+
+# for reproducibility
+set.seed(1)
+
+# simulate 1.5m GBMs
+gbms <- replicate(1500000,
+    gbm_path(s0 = 100, mu = 0.02, sigma = 0.2, T = 252, dt = 1/252))
+gc()
+
+# compute the pay-offs at expiry (European call, X=100)
+payoffs <- tail(gbms,1)-100
+payoffs_T <- ifelse(payoffs > 0, payoffs, 0)
+
+# discount pay-offs to t=0 (note: here 252 trading days resemble one year, r=0.02)
+payoffs <- payoffs_T * exp(-0.02)
+
+# estimate the European call option price, and compute 95% CIs
+price_mc <- mean(payoffs)
+price_sd <- sd(payoffs)
+price_ci_upper <- price_mc + (price_sd/sqrt(1500000))*pnorm(0.975)
+price_ci_lower <- price_mc - (price_sd/sqrt(1500000))*pnorm(0.975)
+
+# estimate the probability of exercise, i.e. P(S_T > X), and compute 95% CIs
+p_exercise_mc <- mean(payoffs>0)
+p_exercise_sd <- sd(payoffs>0)
+p_exercise_ci_upper <- p_exercise_mc + (p_exercise_sd/sqrt(1500000))*pnorm(0.975)
+p_exercise_ci_lower <- p_exercise_mc - (p_exercise_sd/sqrt(1500000))*pnorm(0.975)
+
+# estimate the delta of the option and its 95% CIs (as described in sections 5 and 5.1)
+delta_mc <- (price_mc + 100*exp(-0.02)*mean(payoffs>0))/100
+
+p_payoffs_T <- ifelse(payoffs_T > 0, 1, 0) # compute probabilities of exercise at time T, i.e. P(S_T > 0). Binary variable.
+cov_price_p_exercise <- cov(p_payoffs_T[1:1500000], payoffs[1:1500000]) # Cov between prob. of exercise and the option price
+delta_var <- (1/100^2) * (price_sd^2 + (100*exp(-0.02))^(2) * p_exercise_sd^2 + (2*100*exp(-0.02))*cov_price_p_exercise) 
+
+delta_sd <- sqrt(delta_var)
+delta_ci_upper <- delta_mc + (delta_sd/sqrt(1500000))*pnorm(0.975)
+delta_ci_lower <- delta_mc - (delta_sd/sqrt(1500000))*pnorm(0.975)
+```
+
+```{r, show-results}
+# summarize results
+results <- data.frame(Estimate = c("$V^{C}_0$", "$\\mathbb{P}(S_T > X)$", "$\\text{Delta}^{\\text{C}}$"),
+                      BS_solution = c(price_bs, p_exercise_bs, delta_bs),
+                      MC_solution = c(round(price_mc,3), round(p_exercise_mc,3), round(delta_mc,3)),
+                      MC_CIs = c(paste0("[",round(price_ci_lower,4),", ",round(price_ci_upper,4),"]"),
+                                 paste0("[",round(p_exercise_ci_lower,4),", ",round(p_exercise_ci_upper,4),"]"),
+                                 paste0("[",round(delta_ci_lower,4),", ",round(delta_ci_upper,4),"]")))
+names(results) <- c("Variable", "Black-Scholes\nSolution", "Estimate", "95\\% CI")
+#bquote(S[0]~'='~.(s0)*',  '*mu~'='~.(mu)*',  '*sigma~'='~.(sigma))
+
+kable(results, caption = "Black-Scholes Solution vs Monte-Carlo Estimates",
+      escape = FALSE, booktabs=TRUE, align = c("l","r","r", "c"),
+      col.names = linebreak(c("Variable", "Black-Scholes\nSolution", "Estimate", "95\\% CI"))) %>%
+  kable_styling(position = "center", latex_options = "hold_position") %>%
+  add_header_above(c(" " = 2, "Monte-Carlo\nSimulation" = 2)) %>%
+ footnote(general_title = "",
+          general = c("$n=1.5\\\\text{m}$,","$S_0 = \\\\$100$,",     
+                   "$r=0.02$,","$\\\\sigma=0.2$,", "$X = \\\\$100$."),
+           footnote_as_chunk=TRUE,
+           escape = FALSE)
+```
+
+As seen in the table above, all variables' confidence intervals cover the Black-Scholes solutions. More specifically, the simulated results are accurate to at least two digits. The 95% confidence interval for the option price, $\text{V}_{0}^{\text{C}}$, has a total width of just $0.02.
+
+Also note the evidence for the claim that, $\mathbb{P}(S_T > X) = F_N(d_2)$, where $\mathbb{P}(S_T > X)$ is simulated by computing the proportion of GBMs ending up in the money $S_T > X = \$100$.
+
+# Asian Option Pricing
+
+The key difference between Asian and vanilla options is how the pay-off depends on the underlying's price. More specifically, the pay-off of an Asian option is dependent on the _average_ stock price, $\overline{S_T}$ at finite, different time intervals. Assuming only one time interval, the pay-offs for Asian call and put options at expiry are as follows:
+
+***Average Rate Asian Call Option Pay-Off***
+
+$$C_T = \text{max} \bigg( \frac{1}{T} \sum_{t=0}^{T} S_t - X,0 \bigg)$$
+
+***Average Rate Asian Put Option Pay-Off***
+
+$$P_T = \text{max} \bigg(X - \frac{1}{T} \sum_{t=0}^{T} S_t,0 \bigg)$$
+
+Hence, the pay-off of an Asian option is dependent on the share price over the _lifetime_ of the option, whereas for vanilla options, the pay-off is only dependent on the (one) share price at expiry.
+
+To illustrate this, let's simulate 5 GBMs, resembling 5 different assets over time. Below, the first plot resembles the actual price development of the underlying assets. The second plot, however, depict the _cumulative artihmetic averages_ of the underlying share prices. This is the price function the Asian option is dependent on.
+
+\vspace{3mm}
+
+```{r, asian-option-dependencies, cache = TRUE, out.width = "84%", fig.align = 'center', fig.cap="Price Evolution of Underlying Assets Versus Asian Options' Dependencies"}
+# simulate 5 stock price paths (GBM)
+set.seed(3) # for reproducibility
+s0 <- 100
+mu <- 0.02
+sigma <- 0.3
+T <- 252
+n <- 5
+gbm <- replicate(n,
+  gbm_path(s0 = s0, mu = mu, sigma = sigma, T = T))
+
+# transform stock prices to cumulative arithmetic mean
+gbm_asian_option <- copy(gbm)
+for (i in 1:ncol(gbm_asian_option)){
+  gbm_asian_option[,i] <- cumsum(gbm_asian_option[,i]) / seq_along(gbm_asian_option[,i])
+}
+
+# wrangle data
+gbm <- as.data.table(gbm)[, trading_day := 1:nrow(gbm)]
+gbm <- melt(gbm, id.vars = "trading_day", variable.name = "sim")
+gbm_asian_option <- as.data.table(gbm_asian_option)[, trading_day := 1:nrow(gbm_asian_option)]
+gbm_asian_option <- melt(gbm_asian_option, id.vars = "trading_day", variable.name = "sim")
+
+# plot underlying GBMs
+p1 <- gbm %>%
+  ggplot(aes(x=trading_day, y=value, color=sim)) +
+  scale_y_continuous(position = "right") +
+  theme(axis.text=element_text(size=12, family="sans"),
+      plot.title=element_text(size=14, family="sans", hjust = 0.5), 
+      plot.subtitle = element_text(size=12, family="sans", hjust = 0.5),
+      axis.title.y = element_text(margin = margin(t = 100, r = 100, b = 100, l = 100), size = 12),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.3, colour = 'darkgrey', linetype = 'dotted'),
+      axis.line.y.right = element_line(colour = rgb(0.4,0.4,0.4)),
+      axis.title.x = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.line.x = element_blank(),
+      legend.position = 'none') +
+  ylab("Stock Price\n") +
+  xlab("\nTrading Day") +
+  labs(title = bquote(.(n)*" Simulated Stock Prices (Underlying Assets)"),
+       subtitle = bquote(S[0]~'='~.(s0)*',  '*r~'='~.(mu)*',  '*sigma~'='~.(sigma))) +
+  geom_line() +
+  geom_point(aes(x = 1, y = s0), colour="black") +
+  annotate(geom = "text", x = -3, y = s0, label = expression(S[0]), hjust = "right")
+
+# plot Asian option's dependencies
+p2 <- gbm_asian_option %>%
+  ggplot(aes(x=trading_day, y=value, color=sim)) +
+  scale_y_continuous(position = "right") +
+  theme(axis.text=element_text(size=12, family="sans"),
+      plot.title=element_text(size=14, family="sans", hjust = 0.5), 
+      plot.subtitle = element_text(size=12, family="sans"),
+      axis.title.y = element_text(margin = margin(t = 100, r = 100, b = 100, l = 100), size = 12),
+      axis.title.x = element_text(size = 12),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.3, colour = 'darkgrey', linetype = 'dotted'),
+      axis.line.y.right = element_line(colour = rgb(0.4,0.4,0.4)),
+      axis.line.x.bottom = element_line(colour = rgb(0.4,0.4,0.4)),
+      legend.position = 'none') +
+  ylab("Cumulative Average\n") +
+  xlab("\nTrading Day") +
+  labs(title = bquote("Asian Option Dependencies")) +
+  geom_line() +
+  geom_point(aes(x = 1, y = s0), colour="black") +
+  annotate(geom = "text", x = -3, y = s0, label = expression(bar(S)[0]), hjust = "right")
+
+# stacked plot
+grid.newpage()
+grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
+```
+
+As seen in figure 2, the Asian option's stock price dependencies are far less volatile as compared to vanilla options, which are dependent on the actual share price. Hence there should also be far less variation in the Asian option's delta when compared to vanilla options, making delta-hedging generally more accurate.
+
+## Simulating an Asian Call Option's Price and Probability of Exercise
+
+Assuming an _average rate_, one-period Asian call option, there are several similarities to a European call option. First, it spawns across one specific time period. Secondly, it can only be exercised at expiry. Thirdly, the pay-off is the difference between a function of the underlying asset's price and the fixed strike price $X$, or zero. The _only_ difference is that the European call option depends on $S_t$ and $\mathbb E[S_T]$, whereas the Asian call option depends on $\overline{S}_t = \frac{1}{t} \sum^{t}_{i = 0} S_i$ and $\mathbb E\big[\overline{S}_T\big] = \mathbb E\big[ \frac{1}{T} \sum^{T}_{i = 0} S_i \big]$. Hence, at any point in time, the Asian option's price is at least partially dependent on the _past_ prices of the underlying asset. Thus, it is sensible to distinguish between pricing an Asian option at inception, and pricing an Asian option after its inception, where $t>0$.  
+
+\vspace{2mm}
+
+***Simulating the Price and Probability of Exercise at Inception of the Option***
+
+Simulating an Asian option's price, and the probability of exercise, $\mathbb P(S_T>X)$, is similar to the approach of a vanilla option, with one additional step (i.e. the average rate transformation of the simulated GBM paths). The proposed method is as follows:
+
+1. Simulate several GBM paths. Result: Many estimates for $S_T$.
+2. Compute the _arithmetic mean_ of the simulated GBM paths. Result: Many estimates for $\overline{S}_T$.
+3. From (2), compute the Asian call option's pay-off, i.e. $V^C_T = \text{max} \big(\overline{S}_T - X,0 \big)$. Result: Many estimated pay-offs at expiry, $T$.
+4. From (2), compute the proportion of $\overline{S}_T > X$ via `mean(ST > X)`. This yields the estimate for $\mathbb P\big(\overline{S}_T > X \big)$.
+5. Discount the pay-offs in (3) from $T$ to $t=0$. Result: Many present values of the estimated future pay-offs.
+6. The average of the present value of the future pay-offs estimates the Asian option price at time $t=0$.
+
+\vspace{2mm}
+
+***Simulating an Asian Option’s Price and Probability of Exercise After Inception***
+
+At any point in time $t$, where $T>t>0$, the expected value of the Asian option's price dependency, $\overline{S}_T$, is a weighted sum of the following two elements:
+
+\begin{align}
+\mathbb E\big[\overline{S}_T\big] &= w_1 \; \overline{S}_t \: + \: w_2 \; \mathbb E\big[ \overline{S}_T \big] \notag\\
+\vspace{2mm}
+\mathbb E\big[\overline{S}_T\big] &= w_1 \; \frac{1}{t+1} \sum^{t}_{t=0} S_i \: + \: w_2 \; \mathbb E\bigg[ \frac{1}{T-t}\sum^{T}_{i=t+1} S_i\bigg]
+\end{align}
+
+
+\setstretch{1.1}
+\small
+
+Where:
+
+$\begin{aligned}
+w_1 &= t/T \notag\\
+\vspace{1mm}
+w_2 &= (T-t)/T \notag\\
+\vspace{1mm}
+S_i &= \text{Price of risky asset at time } t=i. \notag
+\label{weighted_sum}
+\end{aligned}$
+
+\setstretch{1.25}
+\normalsize
+
+\vspace{2mm}
+
+**Algorithm:**
+
+1. Compute the arithmetic average price of the underlying asset from $S_0$ to $S_t$, where $t=0$ is the date of the inception of the option, i.e. $\overline{S}_{0,t}= \frac{1}{t} \sum^{t}_{i = 0} S_i$.
+2. Simulate many GBM paths from $S_t$ to $S_T$. Result: Many potential price paths from $t$ to $T$.
+3. For each price evolution in (2), compute the arithmetic average from $t$ to $T$. Result: Many estimates for $\overline{S}_{t,T}$.
+4. Multiply each $\overline {S}_{t,T}$ by $\frac{T-t}{T}$ and add $\frac{t}{T} \overline S_{0,t}$. Result: Many estimates for $\overline{S}_T$.
+5. Compute the Asian call option's pay-off, i.e. $V^C_T = \text{max} \big({S}_T - X,0 \big)$. Result: Many estimates for pay-offs at time $T$.
+6. For (5), compute the proportion of ${S}_T > X$ via `mean(ST_hats > X)`. This yields the estimate for $\mathbb P\big({S}_T > X \big)$.
+7. For (5), discount the estimated pay-offs from time $T$ to $t$. Result: Many present values of the future estimated pay-offs.
+8. The arithmetic average of (7) estimates the option price at time $t$.
+9. Applying the Central Limit Theorem, it is straightforward to estimate a confidence interval for (8) by using the standard error $\text{SE}=\frac{s}{\sqrt{n}}$, where $n$ is the number of simulated pay-offs in (7) and $s$ is the sample standard deviation of (7).
+
+For computational efficiency, instead of simulating GBM paths for each point in time, [$t=0$, $t=1$, ..., $t=T$], I am only once simulating 1,000,000 GBMs. To obtain estimates for [$t=1$, ..., $t=T$], I am consecutively subtracting one day at a time from the end of these paths, and scaling them by $S_t/S_0$.
+
+# Application: Asian Option’s Price, Probability of Exercise, and Empirical Delta for a Risky Asset
+
+Consider one risky asset having the following characteristics:
+
+\setstretch{1.1}
+\small
+
+```{r stock-specifics}
+stock_specifics <- data.frame(c("$S_0$", "$\\sigma$"),
+                           c("$= \\$100$", "$= 0.25$"),
+                           c("Stock price at $t=0$ is \\$100;",
+                             "The underlying asset has 25\\% volatility."))
+
+kable(stock_specifics, escape = FALSE, booktabs=TRUE, col.names = NULL, align = c("l","l","l")) %>%
+  kable_styling(position = "left") %>% 
+  sub("\\\\toprule", "", .) %>%
+  sub("\\\\bottomrule", "", .)
+```
+
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+Assume that the risky asset has the following price evolution over 1 calendar year (252 trading days). Further assume that at any point in time $t$, the future price of the risky asset, $S_{t+i}$ where $i>0$, is unknown.
+
+\vspace{2mm}
+
+```{r, simulate-one-risky-asset, out.width = "80%", fig.align = 'center', fig.cap = "Price Evolution of Hypothetical Risky Asset"}
+set.seed(1) # for reproducibility
+s0 <- 100
+mu <- 0
+sigma <- 0.25
+T <- 252
+
+St <- gbm_path(s0 = s0, mu = mu, sigma = sigma, T = T, dt = 1/251)
+St <- data.frame(x=1:252, St = round(St,2), T = (252-(1:252))/252, St_bar = round(cumsum(St)/seq_along(St),2)) 
+
+# plot price evolution
+St %>%
+  ggplot(aes(x=x, y=St)) +
+  scale_y_continuous(position = "right") +
+  theme(axis.text=element_text(size=12, family="sans"),
+      plot.title=element_text(size=14, family="sans", hjust = 0.5), 
+      plot.subtitle = element_text(size=12, family="sans", hjust = 0.5),
+      axis.title.y = element_text(margin = margin(t = 100, r = 100, b = 100, l = 100), size = 12),
+      axis.title.x = element_text(size = 12),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.3, colour = 'darkgrey', linetype = 'dotted'),
+      axis.line.y.right = element_line(colour = rgb(0.4,0.4,0.4)),
+      axis.line.x.bottom = element_line(colour = rgb(0.4,0.4,0.4)),
+      legend.position = 'none') +
+  ylab("Stock Price\n") +
+  xlab("\nTrading Day") +
+  labs(title = bquote("Price Evolution of Risky Asset"),
+       subtitle = bquote(S[0]~'='~.(s0)*',  '*mu~'='~.(mu)*',  '*sigma~'='~.(sigma))) +
+  geom_line() +
+  geom_point(aes(x = 1, y = s0), colour="black") +
+  annotate(geom = "text", x = -3, y = s0, label = expression(S[0]), hjust = "right", size = 5) +
+  geom_point(aes(x = 252, y = 106), colour="black") +
+  annotate(geom = "text", x = 255, y = tail(St$St,1), label = expression(S[T]), hjust = "left", size = 5)
+```
+
+
+Furthermore, consider one European call option and one Asian call option, both having the same underlying as described above, sharing the following characteristics:
+
+\setstretch{1.1}
+\small
+
+```{r option-specifics}
+option_specifics <- data.frame(c("$X$", "$r$", "$T-t$"),
+                              c("$= \\$100$", "$= 0.02$", "$= 1$"),
+                           c("The option's strike price is \\$100",
+                             "Risk-free rate is 2\\%",
+                             "1 year to expiry"))
+
+kable(option_specifics, escape = FALSE, booktabs=TRUE, col.names = NULL, align = c("l","l","l")) %>%
+  kable_styling(position = "left") %>% 
+  sub("\\\\toprule", "", .) %>%
+  sub("\\\\bottomrule", "", .)
+```
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+For the risky asset in figure 3, I am using the methods as described in the previous sections to simulate daily prices and probabilities of exercise for both a European and an average rate Asian call option.
+
+```{r, simulating-deltas, cache = TRUE, results='hide'}
+# Compute price, delta, and probability of exercise over time using the Black-Scholes equation
+bs_vanilla <- bs_call(s0 = St$St, T = St$T, sigma = 0.25, X=100, r=0.02, t=0)
+
+## simulate Asian option price, delta, p_exercise for risky asset
+# for reproducibility
+set.seed(1)
+# simulate 1m GBMs from s0 to S_T
+n <- 1000
+gbms <- replicate(n,
+    gbm_path(s0 = 100, mu = 0.02, sigma = 0.25, T = 252, dt = 1/252))
+gc()
+
+
+results <- matrix(ncol=10, nrow=252)
+results <- as.data.frame(results)
+names(results) <- c("time", "p_exercise", "price", "price_upper", "price_lower", "delta", "delta_upper", "delta_lower", "price_underlying", "price_underlying_average")
+
+# for each point in time, compute the Asian option's Delta estimate, CIs, Price, and Prob of exercise
+ for(i in 1:251){
+   current_underlying_price <- St$St[i]
+   time_to_expiry <- 252-i
+   
+   transformed_gmbs <- gbms[2:(253-i),] * current_underlying_price/100
+   
+   if(i==251){
+     ST_bars <- transformed_gmbs} else {
+       ST_bars<- apply(transformed_gmbs, 2, mean)}
+   
+   St_bar <- mean(St$St[1:i])
+   weighted_sums <- (i/252)*St_bar + ((252-i)/252)*ST_bars
+   
+   results$time[i] <- i
+   results$p_exercise[i] <- mean(weighted_sums>100)
+   
+   discounted_pay_offs <- ifelse((weighted_sums-100) <= 0, 0, (weighted_sums-100) * exp(-0.02 * ((252-i)/252)))
+   results$price[i] <- mean(discounted_pay_offs)
+   results$price_upper[i] <- results$price[i] + sd(discounted_pay_offs)/(sqrt(1000000)) * qnorm(0.975)
+   results$price_lower[i] <- results$price[i] - sd(discounted_pay_offs)/(sqrt(1000000)) * qnorm(0.975)
+   
+   results$delta[i] <- (results$price[i] + 100*exp(-0.02 * ((252-i)/252)) * results$p_exercise[i])/St_bar
+   
+   a <- St_bar^(-2)
+   b <- 100*exp(-0.02 * ((252-i)/252))
+   
+   var_delta <- a*(var(discounted_pay_offs) + (b^(2))*var(weighted_sums>100)
+                   + 2*b*cov((weighted_sums>100),discounted_pay_offs))
+   
+   results$delta_upper[i] <- results$delta[i] + sqrt(var_delta)/(sqrt(1000000)) * qnorm(0.975)
+   results$delta_lower[i] <- results$delta[i] - sqrt(var_delta)/(sqrt(1000000)) * qnorm(0.975)
+     
+  results$price_underlying[i] <- current_underlying_price
+  results$price_underlying_average[i] <- St$St_bar[i]
+ }
+
+# fill values for t=T
+results$time[252] <- 252
+  results$price_underlying[252] <- current_underlying_price
+  results$price_underlying_average[252] <- St$St_bar[252]
+  results$delta[252] <- ifelse(St$St_bar[252]-100>0,1,0)
+  results$delta_upper[252] <- results$delta[252]
+  results$delta_lower[252] <- results$delta[252]
+  results$p_exercise[252] <- ifelse(St$St_bar[252]-100>0,1,0)
+  results$price[252] <- St$St_bar[252]-100
+  results$price_upper[252] <- results$price[252]
+  results$price_lower[252] <- results$price[252]
+  
+results <- cbind(results,type="Asian Call (Simulation)")
+
+# Black-Scholes vanilla call
+european_call_bs <- data.frame(time=1:252, price_underlying=St$St, price_underlying_average=St$St_bar, delta=bs_vanilla$delta, p_exercise=bs_vanilla$p_exercise, price=bs_vanilla$price, type="European Call (Black-Scholes)")
+
+results <- rbind(as.data.table(results),as.data.table(european_call_bs), fill=TRUE)
+```
+
+```{r plot-results, fig.width=unit(16,"cm"), fig.height=unit(18,"cm"), fig.cap="European Versus Asian Call Price and Probability of Exercise"}
+# Risky asset
+p1 <- St %>% ggplot(aes(x=x, y=St)) +
+#  scale_y_continuous(limits=c(10, 30), breaks=seq(10,30,5), position = "right") +
+  scale_y_continuous(position = "right") +
+  theme(axis.title=element_text(size=24, family="sans"),
+      axis.ticks.y.right = element_blank(),
+      axis.text=element_text(size=24, family="sans"),
+      plot.title=element_text(size=26, family="sans", hjust = 0.5, margin = margin(t = 0, r = 0, b = 8, l = 0)), 
+      plot.subtitle = element_text(size=24, family="sans", hjust = 0.5),
+      axis.title.y.right = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10), size=26, face="plain"),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.5, colour = 'darkgrey', linetype = 'dotted'),
+      axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.line.x = element_blank(),
+      axis.line.y.right = element_line(colour = 'darkgrey', size = 1)) +
+    ylab("Stock Price\n") +
+  xlab("") +
+  labs(title = bquote("Price Evolution of Risky Asset"),
+       subtitle = bquote(S[0]~'='~.(s0)*',  '*mu~'='~.(mu)*',  '*sigma~'='~.(sigma))) +
+  geom_line(lwd=0.9)
+
+# European Vs Asian Call Option: Price /w legend
+p2 <- results %>%
+  ggplot(aes(x=time, y=price, color=type)) +
+  geom_line(lwd=0.9) +
+  scale_colour_wsj("colors6", "") +
+  theme_wsj(color = "white") + # %+replace% theme(plot.caption = element_custom())) +
+  theme(
+  legend.key.width = unit(1.5, 'cm'),
+  legend.key.height = unit(1.5, 'cm'),
+  legend.text = element_text(size=26, family="sans"),
+  axis.title=element_text(size=24, family="sans"),
+      axis.text=element_text(size=24, family="sans"),
+      axis.text.y.right =element_text(size=24, family="sans", face="plain"),
+      plot.title=element_blank(),
+      plot.subtitle = element_blank(),
+      axis.title.y.right = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10), size=26, face="plain"),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.5, colour = 'darkgrey', linetype = 'dotted'),
+      axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.line.x = element_blank(),
+      axis.line.y.right = element_line(colour = 'darkgrey', size = 1)) +
+    ylab("Option Price\n") +
+  xlab("") +
+  scale_y_continuous(position = 'right') + 
+    coord_cartesian(ylim=c(5, 25)) # ALWAYS PREFER COORD_CART.. TO YLIM AS IT DOES NOT EXCLUDE ANY DATA!!
+
+# European Vs Asian Call Option: Pr(Exercise) w/o legend
+p3 <- results %>%
+  ggplot(aes(x=time, y=p_exercise, color=type)) +
+  geom_line(lwd=0.9) +
+  scale_colour_wsj("colors6", "") +
+  theme_wsj(color = "white") + # %+replace% theme(plot.caption = element_custom())) +
+  theme(
+  axis.title=element_text(size=24, family="sans"),
+      axis.text=element_text(size=24, family="sans"),
+      axis.text.y.right =element_text(size=24, family="sans", face="plain"),
+      plot.title=element_blank(),
+      plot.subtitle = element_blank(),
+      axis.title.y.right = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10), size=26, face="bold"),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.5, colour = 'darkgrey', linetype = 'dotted'),
+      axis.title.x = element_text(size=26, family="sans", face="plain"), axis.text.x = element_text(size=24, family="sans", face="plain"), axis.line.x = element_line(colour = 'darkgrey', size = 1),
+      axis.line.y.right = element_line(colour = 'darkgrey', size = 1),
+  legend.position="none") +
+    ylab("Probability of Exercise\n") +
+  xlab("\nTrading Day") +
+  scale_y_continuous(position = 'right') 
+
+# European Vs Asian Call Option: Delta w/o legend
+p4 <- results %>%
+  ggplot(aes(x=time, y=delta, color=type)) +
+  geom_line() +
+  scale_colour_wsj("colors6", "") +
+  theme_wsj(color = "white") + # %+replace% theme(plot.caption = element_custom())) +
+  theme(
+    #axis.title=element_text(size=12, family="sans"),
+    #    axis.title.y = element_blank(),
+    #    axis.text=element_text(size=10, family="sans"),
+    #    plot.title=element_text(size=12, family="sans"), 
+    #    plot.subtitle = element_text(size=10, family="sans"),
+    #    panel.grid.major = element_line(linetype = "dotted", size = 0.375),
+    #    axis.title.y.right = element_text(size=12, family="sans")) +
+    #ylab("") +
+  axis.title=element_text(size=12, family="sans"),
+      axis.text=element_text(size=11, family="sans"),
+      plot.title=element_text(size=12, family="sans"), 
+      plot.subtitle = element_text(size=10, family="sans"),
+      axis.title.y = element_text(margin = margin(t = 100, r = 100, b = 100, l = 100)),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.3, colour = 'darkgrey', linetype = 'dotted'),
+      axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.line.x = element_blank(),
+      axis.line.y.right = element_line(colour = 'darkgrey'),
+  legend.position="none") +
+    ylab("Delta\n") +
+  xlab("") +
+  scale_y_continuous(position = 'right') 
+
+#plot
+grid.newpage()
+grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2),ggplotGrob(p3), size = "last"))
+```
+
+## Empirical Delta
+
+Mathematically, an option's delta is the first derivative of the option price with respect to the price of the underlying asset. The discrete-time equivalent is the change in the option price divided by the change in the underlying:
+
+\begin{align}
+\text{Delta}_t &= \frac{\partial V_{t}}{\partial S_t} \notag\\
+\vspace{20mm}
+&\approx \frac{\Delta V_{t}}{\Delta S_t} = \frac{V_t - V_{t-1}}{S_t-S_{t-1}}
+\label{empiricaldelta}
+\end{align}
+
+As opposed to the continuous-time derivative, the discrete-time delta in equation \eqref{empiricaldelta} is not bound by $[0,1]$. Empirically, this delta represents the quantity fraction necessary to perfectly hedge a portfolio consisting of an option and its underlying asset. Thus, the empirical delta is found by setting the _change_ in this portfolio, $\Delta \text{PF}$, to zero:
+
+\begin{align}
+\Delta \text{PF}_t &= \Delta V_t + \text{Delta}_t \: \Delta S_t \notag\\
+0 &= \Delta V_t + \text{Delta}_t \: \Delta S_t \notag\\
+\vspace{4mm}
+\text{Delta}_t &= - \frac{\Delta V_{t}}{\Delta S_t} \notag
+\end{align}
+
+Thus, the negative value of the discrete-time delta in equation \eqref{empiricaldelta} is the empirical quantity of the underlying asset needed to perfectly hedge the option portfolio.
+
+Below, I am comparing the empirical deltas between European options and Asian options for the same underlying asset as in figures 3 and 4.
+
+```{r plot-empirical-delta, fig.width=unit(16,"cm"), fig.height=unit(18,"cm"), fig.cap="European Versus Asian Call Price and Empirical Delta"}
+
+# compute empirical delta
+results[type=="European Call (Black-Scholes)", delta_option := c(NA, diff(price))]
+results[type=="Asian Call (Simulation)", delta_option := c(NA, diff(price))]
+results[type=="European Call (Black-Scholes)", delta_stock := c(NA, diff(price_underlying))]
+results[type=="Asian Call (Simulation)", delta_stock := c(NA, diff(price_underlying))]
+results[, empirical_delta := delta_option/delta_stock]
+
+# replace inf... delta goes to zero, as it's only dependent on the past realizations of S
+results[type=="Asian Call (Simulation)"]$empirical_delta[252] <- 0
+
+# European Vs Asian Call Option: Delta w/o legend
+p4 <- results %>%
+  ggplot(aes(x=time, y=empirical_delta, color=type)) +
+  geom_line(lwd=0.9) +
+  scale_colour_wsj("colors6", "") +
+  theme_wsj(color = "white") + # %+replace% theme(plot.caption = element_custom())) +
+  theme(
+  axis.title=element_text(size=24, family="sans"),
+      axis.text=element_text(size=24, family="sans"),
+      axis.text.y.right =element_text(size=24, family="sans", face="plain"),
+      plot.title=element_blank(),
+      plot.subtitle = element_blank(),
+      axis.title.y.right = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10), size=26, face="bold"),
+      panel.background = element_rect(fill = "#FFFFFF"),
+      panel.grid.major.y = element_line(size = 0.5, colour = 'darkgrey', linetype = 'dotted'),
+      axis.title.x = element_text(size=26, family="sans", face="plain"), axis.text.x = element_text(size=24, family="sans", face="plain"), axis.line.x = element_line(colour = 'darkgrey', size = 1),
+      axis.line.y.right = element_line(colour = 'darkgrey', size = 1),
+  legend.position="none") +
+    ylab("Empirical Delta\n") +
+  xlab("\nTrading Day") +
+  scale_y_continuous(position = 'right', breaks = seq(0,1,0.25), limits = c(-0.2,1.2)) + 
+  coord_cartesian(ylim=c(-0.2, 1.2))
+
+#plot
+grid.newpage()
+grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2),ggplotGrob(p4), size = "last"))
+```
+
+Noteworthy, the average rate option's delta goes to zero as the option approaches expiry. As seen in equation \eqref{weighted_sum}, this is because the option's weight on past prices of the risky asset increases to one as time goes by. This mechanism also explains the behavior of the probability of exercise in figure 4. At a certain point in time, the Asian option's pay-off 'sticks' to a specific value, and it becomes even more sticky as time goes by.
+
+# Conclusion
+
+In this paper, I propose methods to estimate vanilla and exotic options' prices and probability of exercise using Monte Carlo simulation in `R`. The computational efficiency of these methods relies on;
+
+1. Usage of vectorization, and 
+2. Recycling of the simulated Geometric Brownian Motion paths.  
+
+[Section 3][Application: Asian Option’s Price, Probability of Exercise, and Empirical Delta for a Risky Asset] illustrates the differences between a European and an average rate Asian option for the same underlying asset. Due to the function applied on the price evolution of the underlying asset, the average rate Asian option generally exposes less variability in its price, probability of exercise, and delta. More specifically, the average rate Asian option has decreasing variability in all investigated dimensions as time goes by. When it comes to the Asian option's delta, it inevitably approaches zero over time, as the underlying's future prices have continuously less impact on the option's pay-off.
+
+In general, the cumulative average transformation of the risky asset's price in the Asian option's pay-off greatly reduces uncertainty. This reduced risk is revealed in lower variability of the option price, delta, and probability of exercise. Naturally, this price transformation also the potential return, explaining the lower option price at inception.
+
+\newpage
+
+# References   {-}

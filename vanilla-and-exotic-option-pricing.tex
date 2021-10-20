@@ -1,0 +1,940 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames*,x11names*}{xcolor}
+%
+\documentclass[
+  12pt,
+]{article}
+\usepackage[sc, osf]{mathpazo}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  filecolor=Maroon,
+  citecolor=Blue,
+  urlcolor=blue,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\renewcommand{\baselinestretch}{1.25}
+\newcommand{\bquote}{\begin{quote}}
+\newcommand{\equte}{\end{quote}}
+\newcommand{\cc}{\centering}
+\newcommand{\bdquote}{\begin{displayquote}}
+\newcommand{\edquote}{\end{displayquote}}
+\newcommand{\txtq}{\end{textquote}}
+\usepackage{csquotes}
+\usepackage{textcomp}
+\usepackage{fontawesome5}
+\usepackage{floatrow}
+\floatsetup[figure]{capposition=top}
+\floatsetup[table]{capposition=top}
+\usepackage{setspace}
+\newcommand{\inlinecode}{\texttt}
+\newcommand{\typelatex}{\LaTeX}
+\newcommand{\vspaceone}{\vspace{1 mm}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+
+\title{Asian and European Option Specifics--\\
+Pricing, Estimation, and Comparison Using R}
+\author{By \href{https://www.linkedin.com/in/christian-satzky/}{Christian
+Satzky, FRM}\\
+Email: \href{mailto:c.satzky@gmail.com}{\nolinkurl{c.satzky@gmail.com}}}
+\date{Last update: 20 October 2021}
+
+\begin{document}
+\maketitle
+
+\newpage
+\hypersetup{linkcolor=black}
+\tableofcontents
+\newpage
+\hypersetup{linkcolor=blue}
+
+\hypertarget{abstract}{%
+\section*{Abstract}\label{abstract}}
+\addcontentsline{toc}{section}{Abstract}
+
+In this article, I present methods to efficiently estimate the price and
+the probability of exercise for vanilla and exotic options. In addition,
+I am using these results to compare the empirical delta between European
+and average rate Asian options.
+
+Results confirm that average rate exotic options generally reduce the
+variability of the option's price, probability of exercise, and the
+option's delta when compared to vanilla options. Hence, offering average
+rate options might be beneficial when delta hedging the option portfolio
+is of concern.
+
+This research is 100\% reproducible. All \texttt{R} source code is
+publicly available on my personal
+\href{https://github.com/csatzky}{GitHub page}.\footnote{URL:
+  \url{https://github.com/csatzky}}
+
+\emph{Keywords: Exotic Option Pricing, Monte Carlo Simulation, Delta
+Hedging.}
+
+\newpage
+
+\hypertarget{simulating-vanilla-options}{%
+\section{Simulating Vanilla Options}\label{simulating-vanilla-options}}
+
+Obtaining an option's price using Monte-Carlo simulation is
+straightforward. However, simulating the delta of an option is more
+complex. In the following, I am first reviewing the underlying price
+process of the Black-Scholes model. Secondly, I present a simple,
+lightweight \texttt{R} function to simulate this price process. Thirdly,
+after carefully dissecting the Black-Scholes equation, I am presenting a
+simulation approach on how to estimate an option's delta.
+
+\hypertarget{geometric-brownian-motion}{%
+\subsection{Geometric Brownian Motion}\label{geometric-brownian-motion}}
+
+Under the Black-Scholes differential equation, the stock price \(S\)
+follows a geometric Brownian motion (GBM). The stock price at time \(t\)
+can be expressed as:
+
+\begin{align}
+S_t = S_0 \: \text{exp}\bigg(\bigg({\mu - \frac{\sigma^2}{2}\bigg)T + \sigma B_t} \bigg)
+\end{align}
+
+\begin{footnotesize}
+Where:
+
+\begin{tabular}{ll}
+
+$S_t$ & Stock price at time t\\
+$\mu$ & Annual rate of return of the risky asset $S$\\
+$\sigma$ & Standard deviation of $\mu$\\
+$B_t$ & Wiener process, $B_t \sim N(0,t), \forall t$\\
+
+\end{tabular}
+\end{footnotesize}
+
+\hypertarget{simulating-a-geometric-brownian-motion}{%
+\subsection{Simulating A Geometric Brownian
+Motion}\label{simulating-a-geometric-brownian-motion}}
+
+Let's denote \(\Delta t\) the fixed step size
+\(\Delta t = t_i - t_{i-1} \: \forall i\), such that:
+
+\begin{align}
+S_{t_i} = S_{t_{i-1}} \: \text{exp}\bigg(\bigg({\mu - \frac{\sigma^2}{2}\bigg)\Delta t + \sigma \sqrt{\Delta t} Z} \bigg)
+\end{align}
+
+Where \(Z \sim N(0,1)\).
+
+To simulate one GBM path efficiently, I am using vectorization and two
+lines of \texttt{R} code. The in-built \texttt{R} function
+\texttt{cumprod()} cumulatively multiplies the incremental factors in
+the GBM evolution.
+
+\vspace{2mm}
+
+\setstretch{1.0}
+\small
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{gbm_path <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(s0, mu, sigma, T, }\DataTypeTok{dt =} \DecValTok{1}\OperatorTok{/}\NormalTok{(T}\DecValTok{-1}\NormalTok{)) \{}
+  
+\CommentTok{# draw from the standard-normal distribution  }
+\NormalTok{epsilons <-}\StringTok{ }\KeywordTok{rnorm}\NormalTok{(T}\DecValTok{-1}\NormalTok{) }
+  
+\CommentTok{# compute GBM path from t=0 to t=T}
+\KeywordTok{cumprod}\NormalTok{(}\KeywordTok{c}\NormalTok{(s0,}\KeywordTok{exp}\NormalTok{((mu}\OperatorTok{-}\NormalTok{sigma}\OperatorTok{*}\NormalTok{sigma}\OperatorTok{/}\DecValTok{2}\NormalTok{)}\OperatorTok{*}\NormalTok{dt }\OperatorTok{+}\StringTok{ }\NormalTok{sigma}\OperatorTok{*}\NormalTok{epsilons}\OperatorTok{*}\KeywordTok{sqrt}\NormalTok{(dt))))}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\setstretch{1.25}
+\normalsize
+
+Below, I am using the \texttt{gbm\_path()} function to simulate 10 GBM
+paths sharing the following characteristics:
+
+\setstretch{1.1}
+\small
+
+\begin{tabular}{lll}
+
+$S_0$ & $= 100$ & Stock price in $t=0$ is equal to \$100\\
+$T$ & $= 252$ & Simulate 252 trading days, i.e. 1 calendar year from $S_0$ to $S_T$\\
+$\mu$ & $= 0.07$ & Stock $S$ has an expected, continously compounded, annual return of 7\%\\
+$\sigma$ & $= 0.3$ & Stock $S$ has constant, annual volatility of 30\%\\
+$\Delta t$ & $= 1/251$ & If $t=0$ to $t=T$ represents one year, then $\Delta t = 1/(T-1)$\\
+
+\end{tabular}
+
+\normalsize
+\setstretch{1.25}
+\vspace{6mm}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.76\linewidth]{vanilla-and-exotic-option-pricing_files/figure-latex/plot-gbm-1} 
+
+}
+
+\caption{10 Simulated GBM Paths with Equal Characteristics}\label{fig:plot-gbm}
+\end{figure}
+
+\newpage
+
+\hypertarget{code-cross-check}{%
+\subsubsection{Code Cross-Check}\label{code-cross-check}}
+
+When simulating a GBM path with \(S_0 = 100\), \(\mu = 0.07\), and
+\(T-t_0\) resembling one calendar year, the expected stock price at
+expiry, \(E[S_T]\) is equal to:
+
+\[E[S_T] = S_0\exp\big({\mu}\big) = 100\exp\big({0.07}\big) = 107.2508\]
+
+To test the correctness of the \texttt{gbm\_path()} function, below I am
+simulating \(n = 100,000\) GBM paths to estimate \(S_T\).
+
+\singlespacing
+\small
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# for reproducibility}
+\KeywordTok{set.seed}\NormalTok{(}\DecValTok{1}\NormalTok{)}
+
+\CommentTok{# simulate 100k GBMs with low sigma}
+\NormalTok{gbms <-}\StringTok{ }\KeywordTok{replicate}\NormalTok{(}\DecValTok{100000}\NormalTok{,}
+    \KeywordTok{gbm_path}\NormalTok{(}\DataTypeTok{s0 =} \DecValTok{100}\NormalTok{, }\DataTypeTok{mu =} \FloatTok{0.07}\NormalTok{, }\DataTypeTok{sigma =} \FloatTok{0.0005}\NormalTok{, }\DataTypeTok{T =} \DecValTok{252}\NormalTok{))}
+
+\CommentTok{# compute average stock price at expiry and 95% CIs}
+\NormalTok{ST <-}\StringTok{ }\KeywordTok{mean}\NormalTok{(}\KeywordTok{tail}\NormalTok{(gbms,}\DecValTok{1}\NormalTok{))}
+\NormalTok{sd <-}\StringTok{ }\KeywordTok{sd}\NormalTok{(}\KeywordTok{tail}\NormalTok{(gbms,}\DecValTok{1}\NormalTok{))}
+\NormalTok{ci_upper <-}\StringTok{ }\NormalTok{ST }\OperatorTok{+}\StringTok{ }\NormalTok{(sd}\OperatorTok{/}\KeywordTok{sqrt}\NormalTok{(}\DecValTok{100000}\NormalTok{))}\OperatorTok{*}\KeywordTok{pnorm}\NormalTok{(}\FloatTok{0.975}\NormalTok{)}
+\NormalTok{ci_lower <-}\StringTok{ }\NormalTok{ST }\OperatorTok{-}\StringTok{ }\NormalTok{(sd}\OperatorTok{/}\KeywordTok{sqrt}\NormalTok{(}\DecValTok{100000}\NormalTok{))}\OperatorTok{*}\KeywordTok{pnorm}\NormalTok{(}\FloatTok{0.975}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\setstretch{1.25}
+\normalsize
+\vspace{4mm}
+
+\begin{table}[!h]
+
+\caption{\label{tab:table}Simulation Results for Stock Price at Expiry}
+\centering
+\begin{tabular}[t]{cc}
+\toprule
+$\widehat{S_T}$ & 95\% CI\\
+\midrule
+107.2508 & [107.25099, 107.25071]\\
+\bottomrule
+\multicolumn{2}{l}{\rule{0pt}{1em}$n = 0.1\text{m}$, $S_0 = \$100$, $\mu=0.07$, $\sigma=0.0005$.}\\
+\end{tabular}
+\end{table}
+
+The simulation confirms that the \texttt{gbm\_path()} function yields an
+unbiased estimate of \(S_T\).
+
+\newpage
+
+\hypertarget{option-pricing-using-monte-carlo-simulation}{%
+\subsection{Option Pricing using Monte-Carlo
+Simulation}\label{option-pricing-using-monte-carlo-simulation}}
+
+Under the Black-Scholes model, the investor is invariant to risk. Hence,
+risky assets are discounted at the risk-free rate, \(r\). Likewise,
+risky assets are expected to grow at the risk-free rate, \(r\). Hence,
+when simulating GBM paths, \(\mu\) has no relevance and is set to
+\texttt{mu\ =\ r} in the \texttt{gbm\_path()} function.
+
+Obtaining the price for a European call option is straightforward.
+First, let's simulate several GBM paths. Secondly, compute the pay-off
+at expiry. Thirdly, discount all pay-offs to time \(t=0\). The average
+of all present values of the simulated pay-offs is equal in expectation
+to the option price obtained via the Black-Scholes formula:
+
+\begin{align}
+\text{V}^{\text{C}_{\text{E}}}_t = S_t F_N \big(d_1\big) - X \exp^{-r(T-t)} F_N \big(d_2\big) \label{bscall}
+\end{align}
+
+\setstretch{1.1}
+\small
+
+Where:
+
+\(\begin{aligned} d_1 &= \frac{1}{\sigma\sqrt{T-t}}\bigg[\ln\bigg(\frac{S_t}{X}\bigg)+\bigg(r + \frac{\sigma^2}{2}\bigg)(T-t) \bigg] \notag\\ \vspace{2mm} d_2 &= d_1 - \sigma\sqrt{T-t} \notag\\ \vspace{2mm} F_N() &: \text{Cumulative distribution function of the standard normal distribution} \notag\\ \sigma &: \text{Annualized volatility of the share price } S_t \notag\\ T-t &: \text{Time to expiry in years} \notag\\ S_t &: \text{Share price at time } t \notag\\ X &: \text{Strike price of the option} \notag\\ r &: \text{Annualized, continuously compunded risk-free rate} \notag \end{aligned}\)
+
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+Note that at the option's inception, \(t=0\), and for expiry in one
+year, \(T=1\), the terms simplify to \(T-t = 1\) and \(S_t = S_0\).
+
+\hypertarget{dissecting-the-black-scholes-equations-terms}{%
+\subsubsection{Dissecting the Black-Scholes Equation's
+Terms}\label{dissecting-the-black-scholes-equations-terms}}
+
+In the following, I am developing a method to obtain estimates for a
+vanilla option's delta, i.e.~the first derivative of the option price
+with respect to the share price. Delta is of crucial importance as it is
+used to hedge the option price against changes in the underlying asset.
+
+To develop an approach to simulate an option's delta, it is useful to
+first interpret the terms in Black-Scholes equation \eqref{bscall}. In
+line with Nielsen (1992)\footnote{Lars Tyge Nielsen,
+  \textit{"Understanding N(d1) and N(d2) : risk adjusted probabilities in the black-scholes model"},
+  INSEAD, 1992.}, the terms resemble the following:
+
+\begin{align}
+\underbrace{\text{V}^{\text{C}}_t}_{\substack{\text{European Call}\\  \text{Price at time }t}} = \underbrace{S_t}_{\substack{\text{Present Value}\\  \text{of }\mathbb E[S_T]}}\underbrace{F_N \big(d_1\big)}_{\frac{\partial V^C_{t}}{\partial S_t}} - \underbrace{X \exp^{-r(T-t)}}_{\substack{\text{Present Value}\\  \text{of Strike Price}}} \underbrace{F_N \big(d_2\big)}_{\mathbb{P}(S_T>X)} \label{bscall2}
+\end{align}
+
+\textbf{\emph{Note:}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  As established in the previous section, due to risk-neutrality,
+  \(S_t = \mathbb E[S_T] \exp^{-r(T-t)}\), and likewise,
+  \(\mathbb E[S_T] = S_t \exp^{r(T-t)}\). \vspace{1mm}
+\item
+  It is a common misconception to interpret the option's delta as the
+  probability of the option ending up in the money at expiry. When it
+  comes to a European call option, \(\text{Delta}^{\text{C}}=F_N(d_1)\)
+  \emph{overestimates} the true probability,
+  \(\mathbb P(S_T>X) = F_N(d_1 - \sigma\sqrt{T-t})\). This is due to the
+  missing volatility term, \(\sigma\sqrt{T-t}\). Given delta, this
+  probability can be calculated using the standard normal quantile
+  function, \(Q_N(p)\):
+  \[\mathbb P(S_T>X) = F_N \bigg(Q_N\big(\text{Delta}^{\text{C}}\big) - \sigma\sqrt{T-t} \bigg)\]
+  In \texttt{R}, this can be computed as
+  \texttt{pnorm(qnorm(d)\ -sigma*sqrt(T-t))}, where
+  \(d=\text{Delta}^{\text{C}}\), \(\text{sigma}=\sigma\) (e.g.~implied
+  volatility), and \(\text{T-t}\) is the time to maturity in years.
+  \vspace{1mm}
+\end{enumerate}
+
+In the following section, I am using \eqref{bscall2} to simulate a
+European call option's delta.
+
+\newpage
+
+\hypertarget{simulating-a-vanilla-options-delta}{%
+\subsubsection{Simulating a Vanilla Option's
+Delta}\label{simulating-a-vanilla-options-delta}}
+
+It is straightforward for most options to determine the terms in
+equation \eqref{bscall2} using Monte-Carlo simulation. One possible
+exception, however, is the option's delta, which is given by
+\(F_N(d_1)\) for a European call. More specifically,
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \(S_t\), \(X\), \(r\), and \(T-t\) are all given.
+\item
+  \(\mathbb{P}(S_T>X)\) can be estimated by computing the proportion of
+  several GBM paths exceeding the strike price, \(X\) at expiry, \(T\).
+\item
+  \(\text{V}^{\text{C}}_t\), the option price at time \(t\), can be
+  estimated by discounting and averaging the simulated pay-offs at
+  expiry \(T\).
+\end{enumerate}
+
+Hence, using \eqref{bscall2} and Monte-Carlo simulation, the option's
+delta for a European call option can be estimated by:
+
+\begin{align}
+\text{Delta}^{\text{C}} = \frac{\partial{V^C_t}}{{\partial S_t}} = \frac{1}{S_t} \bigg[ \text{V}^{\text{C}}_t + X \exp^{-r(T-t)} \mathbb{P}(S_T > X) \bigg] \label{deltaeq}
+\end{align}
+
+Note that \(S_t\), \(X\), \(r\), \(T\), and \(t\) are all exogenous and
+the two variables obtainable by simulation are \(\mathbb{P}(S_T > X)\)
+and \(\text{V}^{\text{C}}_t\). Hence, equation \eqref{deltaeq} reduces
+to a scaled sum of two variables of the form \(aX + bY\). Thus, its
+variance is equal to:
+
+\begin{align}
+\text{Var}\big[\hat{\text{Delta}}^\text{C}\big] = \frac{1}{S_t^2} \bigg[ \text{Var}\big[\hat{\text{V}}^{\text{C}}_t\big] + b^2\, \text{Var}\big[\hat{\mathbb P}(S_T > X)\big] + 2\, b\, \text{Cov}\big[\hat{\text{V}}^{\text{C}}_t,\, \hat{\mathbb P}(S_T > X)  \big] \bigg] \label{vardelta}
+\end{align}
+
+Where:
+
+\(\begin{aligned} b &= X\exp^{-r(T-t)} \notag \end{aligned}\)
+
+It follows the standard error for \(\hat{\text{Delta}}^\text{C}\):
+
+\begin{align}
+\text{SE}\big[\hat{\text{Delta}}^\text{C}\big] = \frac{\sqrt{\text{Var}\big[\hat{\text{Delta}}^\text{C}\big]}}{\sqrt{n}} \label{sedelta}
+\end{align}
+
+\hypertarget{application-simulating-the-price-and-delta-of-a-european-call}{%
+\subsubsection{Application: Simulating the Price and Delta of a European
+Call}\label{application-simulating-the-price-and-delta-of-a-european-call}}
+
+In the following, I am comparing the price, the delta, and the
+probability of exercise of a European call option obtained by the
+Black-Scholes equation to the estimates obtained by the simulation
+method as described in
+\protect\hyperlink{simulating-a-vanilla-options-delta}{the previous
+section}.
+
+Consider a European call option with the following characteristics:
+
+\setstretch{1.1}
+\small
+
+\begin{tabular}{lll}
+
+$S_0$ & $= \$100$ & Stock price at $t=0$ is \$100\\
+$\sigma$ & $= 0.2$ & The underlying asset has 20\% volatility\\
+$X$ & $= \$100$ & The option's strike price is \$100\\
+$r$ & $= 0.02$ & Risk-free rate is 2\%\\
+$T-t$ & $= 1$ & 1 year to expiry\\
+
+\end{tabular}
+
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+The table below compares the results obtained by Monte-Carlo simulation
+and the Black-Scholes equation.
+
+\begin{table}[!h]
+
+\caption{\label{tab:show-results}Black-Scholes Solution vs Monte-Carlo Estimates}
+\centering
+\begin{tabular}[t]{lrrc}
+\toprule
+\multicolumn{2}{c}{ } & \multicolumn{2}{c}{\makecell[c]{Monte-Carlo\\Simulation}} \\
+\cmidrule(l{3pt}r{3pt}){3-4}
+Variable & \makecell[c]{Black-Scholes\\Solution} & Estimate & 95\% CI\\
+\midrule
+$V^{C}_0$ & 8.916 & 8.913 & [8.9034, 8.9222]\\
+$\mathbb{P}(S_T > X)$ & 0.500 & 0.500 & [0.4997, 0.5003]\\
+$\text{Delta}^{\text{C}}$ & 0.579 & 0.579 & [0.5788, 0.5796]\\
+\bottomrule
+\multicolumn{4}{l}{\rule{0pt}{1em}$n=1.5\text{m}$, $S_0 = \$100$, $r=0.02$, $\sigma=0.2$, $X = \$100$.}\\
+\end{tabular}
+\end{table}
+
+As seen in the table above, all variables' confidence intervals cover
+the Black-Scholes solutions. More specifically, the simulated results
+are accurate to at least two digits. The 95\% confidence interval for
+the option price, \(\text{V}_{0}^{\text{C}}\), has a total width of just
+\$0.02.
+
+Also note the evidence for the claim that,
+\(\mathbb{P}(S_T > X) = F_N(d_2)\), where \(\mathbb{P}(S_T > X)\) is
+simulated by computing the proportion of GBMs ending up in the money
+\(S_T > X = \$100\).
+
+\hypertarget{asian-option-pricing}{%
+\section{Asian Option Pricing}\label{asian-option-pricing}}
+
+The key difference between Asian and vanilla options is how the pay-off
+depends on the underlying's price. More specifically, the pay-off of an
+Asian option is dependent on the \emph{average} stock price,
+\(\overline{S_T}\) at finite, different time intervals. Assuming only
+one time interval, the pay-offs for Asian call and put options at expiry
+are as follows:
+
+\textbf{\emph{Average Rate Asian Call Option Pay-Off}}
+
+\[C_T = \text{max} \bigg( \frac{1}{T} \sum_{t=0}^{T} S_t - X,0 \bigg)\]
+
+\textbf{\emph{Average Rate Asian Put Option Pay-Off}}
+
+\[P_T = \text{max} \bigg(X - \frac{1}{T} \sum_{t=0}^{T} S_t,0 \bigg)\]
+
+Hence, the pay-off of an Asian option is dependent on the share price
+over the \emph{lifetime} of the option, whereas for vanilla options, the
+pay-off is only dependent on the (one) share price at expiry.
+
+To illustrate this, let's simulate 5 GBMs, resembling 5 different assets
+over time. Below, the first plot resembles the actual price development
+of the underlying assets. The second plot, however, depict the
+\emph{cumulative artihmetic averages} of the underlying share prices.
+This is the price function the Asian option is dependent on.
+
+\vspace{3mm}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.84\linewidth]{vanilla-and-exotic-option-pricing_files/figure-latex/asian-option-dependencies-1} 
+
+}
+
+\caption{Price Evolution of Underlying Assets Versus Asian Options' Dependencies}\label{fig:asian-option-dependencies}
+\end{figure}
+
+As seen in figure 2, the Asian option's stock price dependencies are far
+less volatile as compared to vanilla options, which are dependent on the
+actual share price. Hence there should also be far less variation in the
+Asian option's delta when compared to vanilla options, making
+delta-hedging generally more accurate.
+
+\hypertarget{simulating-an-asian-call-options-price-and-probability-of-exercise}{%
+\subsection{Simulating an Asian Call Option's Price and Probability of
+Exercise}\label{simulating-an-asian-call-options-price-and-probability-of-exercise}}
+
+Assuming an \emph{average rate}, one-period Asian call option, there are
+several similarities to a European call option. First, it spawns across
+one specific time period. Secondly, it can only be exercised at expiry.
+Thirdly, the pay-off is the difference between a function of the
+underlying asset's price and the fixed strike price \(X\), or zero. The
+\emph{only} difference is that the European call option depends on
+\(S_t\) and \(\mathbb E[S_T]\), whereas the Asian call option depends on
+\(\overline{S}_t = \frac{1}{t} \sum^{t}_{i = 0} S_i\) and
+\(\mathbb E\big[\overline{S}_T\big] = \mathbb E\big[ \frac{1}{T} \sum^{T}_{i = 0} S_i \big]\).
+Hence, at any point in time, the Asian option's price is at least
+partially dependent on the \emph{past} prices of the underlying asset.
+Thus, it is sensible to distinguish between pricing an Asian option at
+inception, and pricing an Asian option after its inception, where
+\(t>0\).
+
+\vspace{2mm}
+
+\textbf{\emph{Simulating the Price and Probability of Exercise at
+Inception of the Option}}
+
+Simulating an Asian option's price, and the probability of exercise,
+\(\mathbb P(S_T>X)\), is similar to the approach of a vanilla option,
+with one additional step (i.e.~the average rate transformation of the
+simulated GBM paths). The proposed method is as follows:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Simulate several GBM paths. Result: Many estimates for \(S_T\).
+\item
+  Compute the \emph{arithmetic mean} of the simulated GBM paths. Result:
+  Many estimates for \(\overline{S}_T\).
+\item
+  From (2), compute the Asian call option's pay-off,
+  i.e.~\(V^C_T = \text{max} \big(\overline{S}_T - X,0 \big)\). Result:
+  Many estimated pay-offs at expiry, \(T\).
+\item
+  From (2), compute the proportion of \(\overline{S}_T > X\) via
+  \texttt{mean(ST\ \textgreater{}\ X)}. This yields the estimate for
+  \(\mathbb P\big(\overline{S}_T > X \big)\).
+\item
+  Discount the pay-offs in (3) from \(T\) to \(t=0\). Result: Many
+  present values of the estimated future pay-offs.
+\item
+  The average of the present value of the future pay-offs estimates the
+  Asian option price at time \(t=0\).
+\end{enumerate}
+
+\vspace{2mm}
+
+\textbf{\emph{Simulating an Asian Option's Price and Probability of
+Exercise After Inception}}
+
+At any point in time \(t\), where \(T>t>0\), the expected value of the
+Asian option's price dependency, \(\overline{S}_T\), is a weighted sum
+of the following two elements:
+
+\begin{align}
+\mathbb E\big[\overline{S}_T\big] &= w_1 \; \overline{S}_t \: + \: w_2 \; \mathbb E\big[ \overline{S}_T \big] \notag\\
+\vspace{2mm}
+\mathbb E\big[\overline{S}_T\big] &= w_1 \; \frac{1}{t+1} \sum^{t}_{t=0} S_i \: + \: w_2 \; \mathbb E\bigg[ \frac{1}{T-t}\sum^{T}_{i=t+1} S_i\bigg]
+\end{align}
+
+\setstretch{1.1}
+\small
+
+Where:
+
+\(\begin{aligned} w_1 &= t/T \notag\\ \vspace{1mm} w_2 &= (T-t)/T \notag\\ \vspace{1mm} S_i &= \text{Price of risky asset at time } t=i. \notag \label{weighted_sum} \end{aligned}\)
+
+\setstretch{1.25}
+\normalsize
+
+\vspace{2mm}
+
+\textbf{Algorithm:}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Compute the arithmetic average price of the underlying asset from
+  \(S_0\) to \(S_t\), where \(t=0\) is the date of the inception of the
+  option, i.e.~\(\overline{S}_{0,t}= \frac{1}{t} \sum^{t}_{i = 0} S_i\).
+\item
+  Simulate many GBM paths from \(S_t\) to \(S_T\). Result: Many
+  potential price paths from \(t\) to \(T\).
+\item
+  For each price evolution in (2), compute the arithmetic average from
+  \(t\) to \(T\). Result: Many estimates for \(\overline{S}_{t,T}\).
+\item
+  Multiply each \(\overline {S}_{t,T}\) by \(\frac{T-t}{T}\) and add
+  \(\frac{t}{T} \overline S_{0,t}\). Result: Many estimates for
+  \(\overline{S}_T\).
+\item
+  Compute the Asian call option's pay-off,
+  i.e.~\(V^C_T = \text{max} \big({S}_T - X,0 \big)\). Result: Many
+  estimates for pay-offs at time \(T\).
+\item
+  For (5), compute the proportion of \({S}_T > X\) via
+  \texttt{mean(ST\_hats\ \textgreater{}\ X)}. This yields the estimate
+  for \(\mathbb P\big({S}_T > X \big)\).
+\item
+  For (5), discount the estimated pay-offs from time \(T\) to \(t\).
+  Result: Many present values of the future estimated pay-offs.
+\item
+  The arithmetic average of (7) estimates the option price at time
+  \(t\).
+\item
+  Applying the Central Limit Theorem, it is straightforward to estimate
+  a confidence interval for (8) by using the standard error
+  \(\text{SE}=\frac{s}{\sqrt{n}}\), where \(n\) is the number of
+  simulated pay-offs in (7) and \(s\) is the sample standard deviation
+  of (7).
+\end{enumerate}
+
+For computational efficiency, instead of simulating GBM paths for each
+point in time, {[}\(t=0\), \(t=1\), \ldots, \(t=T\){]}, I am only once
+simulating 1,000,000 GBMs. To obtain estimates for {[}\(t=1\), \ldots,
+\(t=T\){]}, I am consecutively subtracting one day at a time from the
+end of these paths, and scaling them by \(S_t/S_0\).
+
+\hypertarget{application-asian-options-price-probability-of-exercise-and-empirical-delta-for-a-risky-asset}{%
+\section{Application: Asian Option's Price, Probability of Exercise, and
+Empirical Delta for a Risky
+Asset}\label{application-asian-options-price-probability-of-exercise-and-empirical-delta-for-a-risky-asset}}
+
+Consider one risky asset having the following characteristics:
+
+\setstretch{1.1}
+\small
+
+\begin{tabular}{lll}
+
+$S_0$ & $= \$100$ & Stock price at $t=0$ is \$100;\\
+$\sigma$ & $= 0.25$ & The underlying asset has 25\% volatility.\\
+
+\end{tabular}
+
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+Assume that the risky asset has the following price evolution over 1
+calendar year (252 trading days). Further assume that at any point in
+time \(t\), the future price of the risky asset, \(S_{t+i}\) where
+\(i>0\), is unknown.
+
+\vspace{2mm}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.8\linewidth]{vanilla-and-exotic-option-pricing_files/figure-latex/simulate-one-risky-asset-1} 
+
+}
+
+\caption{Price Evolution of Hypothetical Risky Asset}\label{fig:simulate-one-risky-asset}
+\end{figure}
+
+Furthermore, consider one European call option and one Asian call
+option, both having the same underlying as described above, sharing the
+following characteristics:
+
+\setstretch{1.1}
+\small
+
+\begin{tabular}{lll}
+
+$X$ & $= \$100$ & The option's strike price is \$100\\
+$r$ & $= 0.02$ & Risk-free rate is 2\%\\
+$T-t$ & $= 1$ & 1 year to expiry\\
+
+\end{tabular}
+\setstretch{1.25}
+\normalsize
+\vspace{2mm}
+
+For the risky asset in figure 3, I am using the methods as described in
+the previous sections to simulate daily prices and probabilities of
+exercise for both a European and an average rate Asian call option.
+
+\begin{figure}
+\centering
+\includegraphics{vanilla-and-exotic-option-pricing_files/figure-latex/plot-results-1.pdf}
+\caption{European Versus Asian Call Price and Probability of Exercise}
+\end{figure}
+
+\hypertarget{empirical-delta}{%
+\subsection{Empirical Delta}\label{empirical-delta}}
+
+Mathematically, an option's delta is the first derivative of the option
+price with respect to the price of the underlying asset. The
+discrete-time equivalent is the change in the option price divided by
+the change in the underlying:
+
+\begin{align}
+\text{Delta}_t &= \frac{\partial V_{t}}{\partial S_t} \notag\\
+\vspace{20mm}
+&\approx \frac{\Delta V_{t}}{\Delta S_t} = \frac{V_t - V_{t-1}}{S_t-S_{t-1}}
+\label{empiricaldelta}
+\end{align}
+
+As opposed to the continuous-time derivative, the discrete-time delta in
+equation \eqref{empiricaldelta} is not bound by \([0,1]\). Empirically,
+this delta represents the quantity fraction necessary to perfectly hedge
+a portfolio consisting of an option and its underlying asset. Thus, the
+empirical delta is found by setting the \emph{change} in this portfolio,
+\(\Delta \text{PF}\), to zero:
+
+\begin{align}
+\Delta \text{PF}_t &= \Delta V_t + \text{Delta}_t \: \Delta S_t \notag\\
+0 &= \Delta V_t + \text{Delta}_t \: \Delta S_t \notag\\
+\vspace{4mm}
+\text{Delta}_t &= - \frac{\Delta V_{t}}{\Delta S_t} \notag
+\end{align}
+
+Thus, the negative value of the discrete-time delta in equation
+\eqref{empiricaldelta} is the empirical quantity of the underlying asset
+needed to perfectly hedge the option portfolio.
+
+Below, I am comparing the empirical deltas between European options and
+Asian options for the same underlying asset as in figures 3 and 4.
+
+\begin{figure}
+\centering
+\includegraphics{vanilla-and-exotic-option-pricing_files/figure-latex/plot-empirical-delta-1.pdf}
+\caption{European Versus Asian Call Price and Empirical Delta}
+\end{figure}
+
+Noteworthy, the average rate option's delta goes to zero as the option
+approaches expiry. As seen in equation \eqref{weighted_sum}, this is
+because the option's weight on past prices of the risky asset increases
+to one as time goes by. This mechanism also explains the behavior of the
+probability of exercise in figure 4. At a certain point in time, the
+Asian option's pay-off \enquote{sticks} to a specific value, and it
+becomes even more sticky as time goes by.
+
+\hypertarget{conclusion}{%
+\section{Conclusion}\label{conclusion}}
+
+In this paper, I propose methods to estimate vanilla and exotic options'
+prices and probability of exercise using Monte Carlo simulation in
+\texttt{R}. The computational efficiency of these methods relies on;
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Usage of vectorization, and
+\item
+  Recycling of the simulated Geometric Brownian Motion paths.
+\end{enumerate}
+
+\protect\hyperlink{application-asian-options-price-probability-of-exercise-and-empirical-delta-for-a-risky-asset}{Section
+3} illustrates the differences between a European and an average rate
+Asian option for the same underlying asset. Due to the function applied
+on the price evolution of the underlying asset, the average rate Asian
+option generally exposes less variability in its price, probability of
+exercise, and delta. More specifically, the average rate Asian option
+has decreasing variability in all investigated dimensions as time goes
+by. When it comes to the Asian option's delta, it inevitably approaches
+zero over time, as the underlying's future prices have continuously less
+impact on the option's pay-off.
+
+In general, the cumulative average transformation of the risky asset's
+price in the Asian option's pay-off greatly reduces uncertainty. This
+reduced risk is revealed in lower variability of the option price,
+delta, and probability of exercise. Naturally, this price transformation
+also the potential return, explaining the lower option price at
+inception.
+
+\newpage
+
+\hypertarget{references}{%
+\section*{References}\label{references}}
+\addcontentsline{toc}{section}{References}
+
+\hypertarget{refs}{}
+\leavevmode\hypertarget{ref-zoo}{}%
+Achim Zeileis. 2021. \emph{Package ``Zoo''}.
+\url{https://cran.r-project.org/web/packages/zoo/}.
+
+\leavevmode\hypertarget{ref-ggthemes}{}%
+Arnold, J. B. et al. 2019. \emph{Package ``Ggthemes''}.
+\url{https://cran.r-project.org/web/packages/ggthemes/ggthemes.pdf}.
+
+\leavevmode\hypertarget{ref-gridExtra}{}%
+Auguie, B. 2017. \emph{Package ``gridExtra''}.
+\url{https://cran.r-project.org/web/packages/gridExtra/gridExtra.pdf}.
+
+\leavevmode\hypertarget{ref-dt}{}%
+Dowle, M. et al. 2020. \emph{Package ``Data.table''}.
+\url{https://cran.r-project.org/web/packages/data.table/data.table.pdf}.
+
+\leavevmode\hypertarget{ref-stringr}{}%
+Hadley Wickham. 2019. \emph{Package ``Stringr''}.
+\url{https://cran.r-project.org/web/packages/stringr/}.
+
+\leavevmode\hypertarget{ref-scales}{}%
+Hadley Wickham, Dana Seidel, RStudio. 2020. \emph{Package ``Scales''}.
+\url{https://cran.r-project.org/web/packages/scales/}.
+
+\leavevmode\hypertarget{ref-kableExtra}{}%
+Hao Zhu. 2021. \emph{Package ``kableExtra''}.
+\url{https://cran.r-project.org/web/packages/kableExtra/}.
+
+\leavevmode\hypertarget{ref-matrixStats}{}%
+Henrik Bengtsson. 2021. \emph{Package ``matrixStats''}.
+\url{https://cran.r-project.org/web/packages/matrixStats/}.
+
+\leavevmode\hypertarget{ref-iriz}{}%
+Irizarry, Rafael A. 2020. \emph{Introduction to Data Science}.
+\url{https://rafalab.github.io/dsbook/}.
+
+\leavevmode\hypertarget{ref-caTools}{}%
+Jarek Tuszynski. 2021. \emph{Package ``caTools''}.
+\url{https://cran.r-project.org/web/packages/caTools/}.
+
+\leavevmode\hypertarget{ref-xts}{}%
+Jeffrey A. Ryan. 2020. \emph{Package ``Xts''}.
+\url{https://cran.r-project.org/web/packages/xts/}.
+
+\leavevmode\hypertarget{ref-RcppRoll}{}%
+Kevin Ushey. 2018. \emph{Package ``Rcpproll''}.
+\url{https://cran.r-project.org/web/packages/RcppRoll/}.
+
+\leavevmode\hypertarget{ref-Nielsen}{}%
+Lars Tyge Nielsen. 1992. \emph{Understanding N(d1) and N(d2) : Risk
+Adjusted Probabilities in the Black-Scholes Model}. INSEAD.
+
+\leavevmode\hypertarget{ref-R-base}{}%
+R Core Team. 2020. \emph{R: A Language and Environment for Statistical
+Computing}. Vienna, Austria: R Foundation for Statistical Computing.
+\url{https://www.R-project.org}.
+
+\leavevmode\hypertarget{ref-fasttime}{}%
+Simon Urbanek. 2016. \emph{Package ``Fasttime''}.
+\url{https://cran.r-project.org/web/packages/fasttime/}.
+
+\leavevmode\hypertarget{ref-lubridate}{}%
+Spinu, V. 2020. \emph{Package ``Lubridate''}.
+\url{https://cran.r-project.org/web/packages/lubridate/lubridate.pdf}.
+
+\leavevmode\hypertarget{ref-tidyverse}{}%
+Wickham, H. 2019. \emph{Package ``Tidyverse''}.
+\url{https://cran.r-project.org/web/packages/tidyverse/tidyverse.pdf}.
+
+\leavevmode\hypertarget{ref-extrafont}{}%
+Winston Chang. 2014. \emph{Package ``Extrafont''}.
+\url{https://cran.r-project.org/web/packages/extrafont/}.
+
+\leavevmode\hypertarget{ref-knitr}{}%
+Xie, Y. et al. 2020. \emph{Package ``Knitr''}.
+\url{https://cran.r-project.org/web/packages/knitr/knitr.pdf}.
+
+\end{document}
